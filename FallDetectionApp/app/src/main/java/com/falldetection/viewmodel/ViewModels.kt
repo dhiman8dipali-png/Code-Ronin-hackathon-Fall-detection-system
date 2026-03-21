@@ -3,6 +3,8 @@ package com.falldetection.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.falldetection.integration.AlertRequest
+import com.falldetection.integration.ApiService
 import com.falldetection.model.AlertState
 import com.falldetection.model.FallDetectionEvent
 import com.falldetection.model.SystemStatus
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class HomeScreenViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -70,6 +74,13 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
         database.emergencyContactDao()
     )
 
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://10.0.2.2:5000") // Android emulator localhost
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val apiService = retrofit.create(ApiService::class.java)
+
     private val _alertState = MutableStateFlow<AlertState>(AlertState())
     val alertState: StateFlow<AlertState> = _alertState.asStateFlow()
 
@@ -97,6 +108,31 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
 
     fun triggerSoS() {
         _isSoSTriggered.value = true
+        val event = _alertState.value.event
+        if (event != null) {
+            viewModelScope.launch {
+                try {
+                    val request = AlertRequest(
+                        timestamp = event.timestamp,
+                        latitude = event.latitude,
+                        longitude = event.longitude,
+                        confidence = _alertState.value.confidence,
+                        accelerationMagnitude = event.accelerationMagnitude,
+                        gyroscopeMagnitude = event.gyroscopeMagnitude,
+                        tiltAngle = event.tiltAngle,
+                        mapsLink = event.mapsLink
+                    )
+                    val response = apiService.sendAlert(request)
+                    if (response.isSuccessful) {
+                        // Success
+                    } else {
+                        // Handle error
+                    }
+                } catch (e: Exception) {
+                    // Handle exception
+                }
+            }
+        }
     }
 
     suspend fun updateEventWithSOS(eventId: Long) {

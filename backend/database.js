@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 
-const dbPath = process.env.DATABASE_PATH || './data/fall_detection.db';
+const dbPath = process.env.DATABASE_PATH || './fall_detection.db';
 let db;
 
 export function initializeDatabase() {

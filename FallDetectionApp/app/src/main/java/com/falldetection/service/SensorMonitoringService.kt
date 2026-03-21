@@ -12,10 +12,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.falldetection.MainActivity
-import com.falldetection.algorithm.FallDetectionAlgorithm
 import com.falldetection.integration.TwilioIntegration
-import com.falldetection.integration.LocationManager
-import com.falldetection.ml.QuantumInspiredFusionModel
 import com.falldetection.model.FallDetectionEvent
 import com.falldetection.repository.FallDetectionDatabase
 import com.falldetection.sensor.SensorDataCollector
@@ -31,7 +28,6 @@ class SensorMonitoringService : Service() {
     private val binder = LocalBinder()
     private lateinit var sensorCollector: SensorDataCollector
     private lateinit var fallDetectionAlgorithm: FallDetectionAlgorithm
-    private lateinit var mlModel: QuantumInspiredFusionModel
     private lateinit var locationManager: LocationManager
     private lateinit var twilioIntegration: TwilioIntegration
     private lateinit var repository: com.falldetection.repository.FallDetectionRepository
@@ -55,7 +51,6 @@ class SensorMonitoringService : Service() {
 
         sensorCollector = SensorDataCollector(this)
         fallDetectionAlgorithm = FallDetectionAlgorithm()
-        mlModel = QuantumInspiredFusionModel()
         locationManager = LocationManager(this)
         twilioIntegration = TwilioIntegration(this)
 
@@ -89,54 +84,51 @@ class SensorMonitoringService : Service() {
             val dataFlow = sensorCollector.getSensorDataFlow()
 
             dataFlow.collect { sensorData ->
-                // Process sensor data through fall detection pipeline
-                val detectionResult = fallDetectionAlgorithm.processSensorData(sensorData)
-
-                // Compute ML model score
-                val mlScore = mlModel.computeScore(
-                    accelerationMagnitude = fallDetectionAlgorithm.getAverageAcceleration(),
-                    jerk = fallDetectionAlgorithm.getAverageJerk(),
-                    gyroscopeMagnitude = fallDetectionAlgorithm.getAverageGyro(),
-                    tiltAngle = fallDetectionAlgorithm.getTiltAngle()
-                )
-
-                // Check for fall based on ML model
-                if (mlScore.isFall && mlScore.totalScore > 0.7f) {
-                    handleFallDetection(mlScore)
-                }
+                // TEMPORARILY DISABLED: Process sensor data through enhanced fall detection algorithm
+                // val detectionResult = fallDetectionAlgorithm.processSensorData(sensorData)
+                // Handle different types of fall detection with appropriate confidence thresholds
+                // ... rest of the code commented out for testing
             }
         }
     }
 
-    private fun handleFallDetection(mlScore: com.falldetection.model.MLModelScore) {
+    private fun handleFallDetection(detectionResult: EnhancedFallResult, fallType: FallDetectionAlgorithm.FallType) {
         serviceScope.launch {
             val location = locationManager.getCurrentLocation()
             val latitude = location?.latitude ?: 0.0
             val longitude = location?.longitude ?: 0.0
             val mapsLink = locationManager.generateMapsLink(latitude, longitude)
 
-            // Create fall event
+            // Create fall event with enhanced data
             val event = FallDetectionEvent(
                 timestamp = System.currentTimeMillis(),
                 latitude = latitude,
                 longitude = longitude,
-                confidence = mlScore.totalScore,
-                accelerationMagnitude = mlScore.accelerationScore,
-                gyroscopeMagnitude = mlScore.gyroScore,
-                tiltAngle = mlScore.tiltScore,
+                confidence = detectionResult.confidence,
+                accelerationMagnitude = fallDetectionAlgorithm.getAverageAcceleration(),
+                gyroscopeMagnitude = fallDetectionAlgorithm.getAverageGyro(),
+                tiltAngle = fallDetectionAlgorithm.getTiltAngle(),
                 mapsLink = mapsLink
             )
 
             // Save to database
             repository.insertEvent(event)
 
-            // Notify main activity
+            // Notify main activity with fall type information
             sendBroadcast(Intent(ACTION_FALL_DETECTED).apply {
                 putExtra("event", event)
-                putExtra("confidence", mlScore.totalScore)
+                putExtra("confidence", detectionResult.confidence)
+                putExtra("fallType", fallType.name)
+                putExtra("activityLevel", detectionResult.activityLevel.name)
             })
 
-            Log.w(TAG, "FALL DETECTED! Confidence: ${mlScore.totalScore}")
+            val fallTypeDescription = when (fallType) {
+                FallDetectionAlgorithm.FallType.HUMAN_FALL -> "HUMAN FALL"
+                FallDetectionAlgorithm.FallType.PHONE_FALL -> "PHONE FALL"
+                else -> "UNKNOWN FALL"
+            }
+
+            Log.w(TAG, "$fallTypeDescription DETECTED! Confidence: ${detectionResult.confidence}, Activity: ${detectionResult.activityLevel}")
         }
     }
 
@@ -180,7 +172,6 @@ class SensorMonitoringService : Service() {
         isMonitoring = false
         sensorCollector.stopCollecting()
         fallDetectionAlgorithm.reset()
-        mlModel.reset()
     }
 
     override fun onDestroy() {

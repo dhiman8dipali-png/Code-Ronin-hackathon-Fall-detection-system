@@ -5,9 +5,16 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-const client = twilio(accountSid, authToken);
+let client = null;
+if (accountSid && authToken) {
+    client = twilio(accountSid, authToken);
+}
 
 export async function sendSMSAlert(toPhoneNumber, location, mapsLink) {
+    if (!client) {
+        console.log('Twilio not configured, skipping SMS');
+        return { success: false, error: 'Twilio not configured' };
+    }
     try {
         const message = await client.messages.create({
             body: `🚨 EMERGENCY: Fall detected! User may need help.\n\nLocation: ${location}\nMaps: ${mapsLink}\n\nPlease check on them immediately.`,
@@ -24,6 +31,10 @@ export async function sendSMSAlert(toPhoneNumber, location, mapsLink) {
 }
 
 export async function triggerVoiceCall(toPhoneNumber, mapsLink) {
+    if (!client) {
+        console.log('Twilio not configured, skipping voice call');
+        return { success: false, error: 'Twilio not configured' };
+    }
     try {
         const twiml = new twilio.twiml.VoiceResponse();
         twiml.say('A fall has been detected. The user is in need of assistance.');
