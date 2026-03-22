@@ -1,7 +1,11 @@
 # Fall Detection System - API Documentation
 
-## Overview
-The Fall Detection Backend API provides endpoints for managing fall detection events, emergency contacts, and triggering alerts via Twilio.
+The Fall Detection Backend API provides endpoints for managing fall detection events, emergency contacts, and triggering alerts via the **Twilio Offline Port**.
+
+### Twilio Offline Port (Native Proxy)
+The application uses a specialized "port" of the Twilio API that operates in two modes:
+1. **Online (Cloud Mode)**: Standard HTTP POST requests to Twilio for SMS and Voice.
+2. **Offline (Native Mode)**: Direct hardware interaction via `android.telephony.SmsManager` to bypass the need for internet.
 
 **Base URL:** `http://localhost:5000/api` (or your production URL)
 
@@ -568,6 +572,17 @@ Currently, no rate limiting is implemented. For production:
    GET /api/contacts?userId=user123
    PUT /api/contacts/{id}
    ```
+
+---
+
+## Offline Messaging Protocol
+
+When a fall is detected and the device is offline, the system initiates the following **Offline Sync Protocol**:
+
+1. **Connectivity Check**: The `isNetworkAvailable()` method checks for WiFi/Cellular data.
+2. **API Mocking**: If no network is found, the system redirects the request from the Twilio Cloud API to the **TwilioOfflinePort** native handler.
+3. **Hardware Dispatch**: The message is dispatched via the device's GSM/LTE radio directly to the emergency contact's cellular number.
+4. **Log Synchronization**: Once the device regains internet access, the local database logs are synchronized with the backend.
 
 ---
 

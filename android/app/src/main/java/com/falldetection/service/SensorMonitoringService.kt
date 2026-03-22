@@ -34,7 +34,7 @@ class SensorMonitoringService : Service() {
     private lateinit var sensorCollector: SensorDataCollector
     private lateinit var fallDetectionAlgorithm: FallDetectionAlgorithm
     private lateinit var locationManager: LocationManager
-    private lateinit var twilioIntegration: TwilioIntegration
+    private lateinit var twilioOfflinePort: com.falldetection.integration.TwilioOfflinePort
     private lateinit var repository: FallDetectionRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.Default)
@@ -59,7 +59,7 @@ class SensorMonitoringService : Service() {
         sensorCollector = SensorDataCollector(this)
         fallDetectionAlgorithm = FallDetectionAlgorithm()
         locationManager = LocationManager(this)
-        twilioIntegration = TwilioIntegration(this)
+        twilioOfflinePort = com.falldetection.integration.TwilioOfflinePort(this)
 
         val database = FallDetectionDatabase.getDatabase(this)
         repository = FallDetectionRepository(

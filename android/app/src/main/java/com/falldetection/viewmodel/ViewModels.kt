@@ -81,6 +81,7 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
         .build()
 
     private val apiService: ApiService = retrofit.create(ApiService::class.java)
+    private val twilioOfflinePort = com.falldetection.integration.TwilioOfflinePort(application)
 
     private val _alertState = MutableStateFlow<AlertState>(AlertState())
     val alertState: StateFlow<AlertState> = _alertState.asStateFlow()
@@ -113,6 +114,7 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
         val event = _alertState.value.event
         if (event != null) {
             viewModelScope.launch {
+                // 1. Try Backend API (if online)
                 try {
                     val request = AlertRequest(
                         timestamp = event.timestamp,
@@ -127,11 +129,21 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                     val response = apiService.sendAlert(request)
                     if (response.isSuccessful) {
                         updateEventWithSOS(event.id)
-                    } else {
-                        // Handle error
                     }
                 } catch (e: Exception) {
-                    // Handle exception
+                    Log.e("AlertViewModel", "API Alert failed: ${e.message}")
+                }
+
+                // 2. Trigger Twilio / Native SMS Fallback
+                val contacts = repository.getAllContacts().first()
+                val activeContacts = contacts.filter { it.isActive }
+                
+                if (activeContacts.isNotEmpty()) {
+                    twilioOfflinePort.sendAlertsToContacts(
+                        activeContacts,
+                        "Lat: ${event.latitude}, Lon: ${event.longitude}",
+                        event.mapsLink
+                    )
                 }
             }
         }

@@ -8,18 +8,22 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.telephony.SmsManager
 
 /**
- * Twilio Integration for SMS and Voice Alerts
+ * Twilio Offline Port: A unified interface that mimics the Twilio API 
+ * but functions natively when no internet is available.
  */
-class TwilioIntegration(private val context: Context) {
+class TwilioOfflinePort(private val context: Context) {
 
     companion object {
         private const val TWILIO_ACCOUNT_SID = "YOUR_TWILIO_ACCOUNT_SID"
         private const val TWILIO_AUTH_TOKEN = "YOUR_TWILIO_AUTH_TOKEN"
         private const val TWILIO_PHONE_NUMBER = "+1234567890"  // Your Twilio number
         private const val TWILIO_API_URL = "https://api.twilio.com/2010-04-01"
-        private const val TAG = "TwilioIntegration"
+        private const val TAG = "TwilioOfflinePort"
     }
 
     /**
@@ -30,8 +34,13 @@ class TwilioIntegration(private val context: Context) {
         location: String,
         mapsLink: String
     ): Boolean = withContext(Dispatchers.IO) {
+        val message = buildSmsMessage(location, mapsLink)
+        
+        if (!isNetworkAvailable()) {
+            return@withContext sendNativeSMS(toPhoneNumber, message)
+        }
+
         return@withContext try {
-            val message = buildSmsMessage(location, mapsLink)
             val authStr = "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN"
             val auth = java.util.Base64.getEncoder().encodeToString(authStr.toByteArray())
 
@@ -62,15 +71,16 @@ class TwilioIntegration(private val context: Context) {
             val success = responseCode in 200..299
 
             if (success) {
-                Log.d(TAG, "SMS sent successfully to $toPhoneNumber")
+                Log.d(TAG, "Twilio SMS sent successfully to $toPhoneNumber")
             } else {
-                Log.e(TAG, "SMS send failed with code: $responseCode")
+                Log.e(TAG, "Twilio SMS failed, falling back to Native SMS")
+                sendNativeSMS(toPhoneNumber, message)
             }
 
             success
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending SMS: ${e.message}")
-            false
+            Log.e(TAG, "Error sending Twilio SMS: ${e.message}, falling back to Native SMS")
+            sendNativeSMS(toPhoneNumber, message)
         }
     }
 
@@ -171,5 +181,33 @@ class TwilioIntegration(private val context: Context) {
                 <Say voice="alice">Call is being transferred to emergency services.</Say>
             </Response>
         """.trimIndent()
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val nw = connectivityManager.activeNetwork ?: return false
+        val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
+        return when {
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
+        }
+    }
+
+    private fun sendNativeSMS(phoneNumber: String, message: String): Boolean {
+        return try {
+            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+            } else {
+                SmsManager.getDefault()
+            }
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+            Log.d(TAG, "Native SMS sent to $phoneNumber")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send native SMS: ${e.message}")
+            false
+        }
     }
 }
