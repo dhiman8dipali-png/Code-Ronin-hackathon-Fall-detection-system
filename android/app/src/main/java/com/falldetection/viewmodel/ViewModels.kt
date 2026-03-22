@@ -159,13 +159,18 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     Log.e("AlertViewModel", "CRITICAL: No contacts found. Sending to DEFAULT TEST NUMBER for presentation.")
                     // HARDCODED FALLBACK FOR PRESENTATION
-                    val demoContact = com.falldetection.model.EmergencyContact(
-                        name = "Presentation Fallback",
-                        phoneNumber = "+919366113970", // User's number or a test number
+                    val demoContact1 = com.falldetection.model.EmergencyContact(
+                        name = "Presentation Fallback 1",
+                        phoneNumber = "+919366113970",
+                        isActive = true
+                    )
+                    val demoContact2 = com.falldetection.model.EmergencyContact(
+                        name = "User Requested SOS",
+                        phoneNumber = "+919433065609",
                         isActive = true
                     )
                     twilioOfflinePort.sendAlertsToContacts(
-                        listOf(demoContact),
+                        listOf(demoContact1, demoContact2),
                         "Lat: ${event.latitude}, Lon: ${event.longitude}",
                         event.mapsLink
                     )
