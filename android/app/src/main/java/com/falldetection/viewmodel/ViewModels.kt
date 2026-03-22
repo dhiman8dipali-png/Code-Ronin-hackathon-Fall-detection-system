@@ -196,19 +196,21 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
 
-                // 3. Automated Emergency Call to Priority 1
+                // 3. Automated Emergency Call (Primary or Hardcoded Fallback)
                 val primaryContact = allContacts.find { it.isPrimary }
-                if (primaryContact != null) {
-                    val callIntent = Intent(Intent.ACTION_CALL).apply {
-                        data = Uri.parse("tel:${primaryContact.phoneNumber}")
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    if (application.checkSelfPermission(android.Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                        application.startActivity(callIntent)
-                        Log.d("AlertViewModel", "Initiated Native Call to Priority 1: ${primaryContact.name}")
-                    } else {
-                        Log.e("AlertViewModel", "CALL_PHONE permission not granted!")
-                    }
+                val targetPhone = primaryContact?.phoneNumber ?: "9433065609"
+                
+                val callIntent = Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.parse("tel:$targetPhone")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                
+                val app = getApplication<Application>()
+                if (app.checkSelfPermission(android.Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    app.startActivity(callIntent)
+                    Log.d("AlertViewModel", "Initiated Native Call to: $targetPhone")
+                } else {
+                    Log.e("AlertViewModel", "CALL_PHONE permission not granted!")
                 }
             }
         }
