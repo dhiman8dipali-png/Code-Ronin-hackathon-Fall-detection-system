@@ -93,6 +93,24 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSoSTriggered = MutableStateFlow(false)
     val isSoSTriggered: StateFlow<Boolean> = _isSoSTriggered.asStateFlow()
 
+    val emergencyContacts = repository.getAllContacts()
+
+    private val _isOnline = MutableStateFlow(true)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+
+    init {
+        checkConnectivity()
+    }
+
+    private fun checkConnectivity() {
+        viewModelScope.launch {
+            while (true) {
+                _isOnline.value = twilioOfflinePort.isNetworkAvailable()
+                kotlinx.coroutines.delay(2000)
+            }
+        }
+    }
+
     fun setFallAlert(event: FallDetectionEvent, confidence: Float, quantumConfidence: Float = 0f) {
         _alertState.value = AlertState(
             isFallDetected = true,
@@ -175,6 +193,20 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                         event.mapsLink
                     )
                 }
+            }
+        }
+    }
+
+    fun triggerSelectiveSoS(contact: com.falldetection.model.EmergencyContact) {
+        _isSoSTriggered.value = true
+        val event = _alertState.value.event
+        if (event != null) {
+            viewModelScope.launch {
+                twilioOfflinePort.sendAlertsToContacts(
+                    listOf(contact),
+                    "Lat: ${event.latitude}, Lon: ${event.longitude}",
+                    event.mapsLink
+                )
             }
         }
     }

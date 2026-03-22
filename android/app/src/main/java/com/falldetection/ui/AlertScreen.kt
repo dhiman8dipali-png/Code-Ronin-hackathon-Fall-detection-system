@@ -25,6 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Divider
+import com.falldetection.model.EmergencyContact
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +46,10 @@ fun AlertScreen(viewModel: AlertViewModel, onDismiss: () -> Unit) {
     val alertState = viewModel.alertState.collectAsState()
     val countdownSeconds = viewModel.countdownSeconds.collectAsState()
     val isSoSTriggered = viewModel.isSoSTriggered.collectAsState()
+    val isOnline = viewModel.isOnline.collectAsState()
+    val contacts = viewModel.emergencyContacts.collectAsState(initial = emptyList())
+
+    val showContactPicker = remember { mutableStateOf(false) }
 
     val event = alertState.value.event
 
@@ -105,6 +116,22 @@ fun AlertScreen(viewModel: AlertViewModel, onDismiss: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+
+                // Connectivity Badge
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isOnline.value) Color(0xFF4CAF50) else Color(0xFF2196F3)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(
+                        text = if (isOnline.value) "Protocol: ONLINE (TWILIO)" else "Protocol: OFFLINE (NATIVE SMS)",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 Text(
                     "Are you OK?",
@@ -199,15 +226,25 @@ fun AlertScreen(viewModel: AlertViewModel, onDismiss: () -> Unit) {
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxSize(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
-                        Text("SOS", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("SOS ALL", color = Color.White, fontWeight = FontWeight.Bold)
                     }
+                }
+
+                Button(
+                    onClick = {
+                        showContactPicker.value = true
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f))
+                ) {
+                    Text("Select Specific Contact", color = Color.White)
                 }
 
                 if (isSoSTriggered.value) {
                     Text(
-                        "📱 Sending alerts to emergency contacts...",
+                        "📱 Sending alerts via ${if(isOnline.value) "Twilio Cloud" else "Native SIM"}...",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
@@ -215,7 +252,56 @@ fun AlertScreen(viewModel: AlertViewModel, onDismiss: () -> Unit) {
                 }
             }
         }
+
+        if (showContactPicker.value) {
+            ContactSelectionDialog(
+                contacts = contacts.value,
+                onContactSelected = { contact ->
+                    viewModel.triggerSelectiveSoS(contact)
+                    showContactPicker.value = false
+                },
+                onDismiss = { showContactPicker.value = false }
+            )
+        }
     }
+}
+
+@Composable
+fun ContactSelectionDialog(
+    contacts: List<EmergencyContact>,
+    onContactSelected: (EmergencyContact) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Contact to Notify") },
+        text = {
+            LazyColumn {
+                items(contacts) { contact ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onContactSelected(contact) }
+                            .padding(vertical = 12.dp)
+                    ) {
+                        Text(contact.name, fontWeight = FontWeight.Bold)
+                        Text(contact.phoneNumber, fontSize = 12.sp, color = Color.Gray)
+                    }
+                    Divider()
+                }
+                if (contacts.isEmpty()) {
+                    item {
+                        Text("No contacts found in database.", modifier = Modifier.padding(16.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
