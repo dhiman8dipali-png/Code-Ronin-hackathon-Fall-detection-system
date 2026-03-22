@@ -1,6 +1,8 @@
 package com.falldetection.viewmodel
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -193,6 +195,21 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                         event.mapsLink
                     )
                 }
+
+                // 3. Automated Emergency Call to Priority 1
+                val primaryContact = allContacts.find { it.isPrimary }
+                if (primaryContact != null) {
+                    val callIntent = Intent(Intent.ACTION_CALL).apply {
+                        data = Uri.parse("tel:${primaryContact.phoneNumber}")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    if (application.checkSelfPermission(android.Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        application.startActivity(callIntent)
+                        Log.d("AlertViewModel", "Initiated Native Call to Priority 1: ${primaryContact.name}")
+                    } else {
+                        Log.e("AlertViewModel", "CALL_PHONE permission not granted!")
+                    }
+                }
             }
         }
     }
@@ -261,6 +278,15 @@ class ContactsViewModel(application: Application) : AndroidViewModel(application
                 email = email
             )
             repository.insertContact(contact)
+        }
+    }
+
+    fun setPrimaryContact(contact: com.falldetection.model.EmergencyContact) {
+        viewModelScope.launch {
+            val contacts = repository.getAllContacts().first()
+            contacts.forEach { 
+                repository.updateContact(it.copy(isPrimary = it.id == contact.id))
+            }
         }
     }
 

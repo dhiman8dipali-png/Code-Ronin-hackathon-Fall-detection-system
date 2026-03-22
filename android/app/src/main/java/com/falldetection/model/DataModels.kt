@@ -52,7 +52,8 @@ data class EmergencyContact(
     val phoneNumber: String,
     val email: String = "",
     val createdAt: Long = System.currentTimeMillis(),
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val isPrimary: Boolean = false
 )
 
 /**

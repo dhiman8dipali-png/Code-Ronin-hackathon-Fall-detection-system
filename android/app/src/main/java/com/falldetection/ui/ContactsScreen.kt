@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,7 +43,7 @@ import com.falldetection.model.EmergencyContact
 import com.falldetection.viewmodel.ContactsViewModel
 
 @Composable
-fun EmergencyContactsScreen(viewModel: ContactsViewModel) {
+fun EmergencyContactsScreen(viewModel: ContactsViewModel, onImportContact: () -> Unit) {
     val contacts = viewModel.emergencyContacts.collectAsState(initial = emptyList())
     val showAddDialog = remember { mutableStateOf(false) }
 
@@ -63,6 +65,16 @@ fun EmergencyContactsScreen(viewModel: ContactsViewModel) {
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            Button(
+                onClick = onImportContact,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Import from Phone Contacts")
+            }
 
             // Contacts List
             LazyColumn(
@@ -114,11 +126,22 @@ fun ContactCard(contact: EmergencyContact, viewModel: ContactsViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    contact.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        contact.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = if (contact.isPrimary) Color(0xFFFFC107) else Color.Unspecified
+                    )
+                    if (contact.isPrimary) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = "Primary",
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                        )
+                    }
+                }
                 Text(
                     contact.phoneNumber,
                     fontSize = 14.sp,
@@ -148,6 +171,14 @@ fun ContactCard(contact: EmergencyContact, viewModel: ContactsViewModel) {
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Text(if (contact.isActive) "Active" else "Inactive", fontSize = 12.sp)
+                }
+
+                IconButton(onClick = { viewModel.setPrimaryContact(contact) }) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Set Primary",
+                        tint = if (contact.isPrimary) Color(0xFFFFC107) else Color.Gray
+                    )
                 }
 
                 IconButton(onClick = { viewModel.deleteContact(contact) }) {

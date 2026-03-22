@@ -35,6 +35,10 @@ import com.falldetection.viewmodel.AlertViewModel
 import com.falldetection.viewmodel.ContactsViewModel
 import com.falldetection.viewmodel.HomeScreenViewModel
 import com.falldetection.viewmodel.LogsViewModel
+import android.provider.ContactsContract
+import android.net.Uri
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 
 class MainActivity : ComponentActivity() {
 
@@ -92,6 +96,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val pickContactLauncher = registerForActivityResult(
+        ActivityResultContracts.PickContact()
+    ) { contactUri: Uri? ->
+        contactUri?.let { uri ->
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val id = it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
+                    val name = it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME))
+                    
+                    val hasPhone = it.getInt(it.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0
+                    if (hasPhone) {
+                        val pCursor = contentResolver.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            null,
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                            arrayOf(id),
+                            null
+                        )
+                        pCursor?.use { pc ->
+                            if (pc.moveToFirst()) {
+                                val phone = pc.getString(pc.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                                contactsViewModel.addContact(name, phone)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -107,7 +142,8 @@ class MainActivity : ComponentActivity() {
                         logsViewModel,
                         contactsViewModel,
                         onStartClicked = { requestPermissionsAndStart() },
-                        onStopClicked = { stopSensorService() }
+                        onStopClicked = { stopSensorService() },
+                        onImportContact = { pickContactLauncher.launch(null) }
                     )
                 }
             }
@@ -216,7 +252,8 @@ fun MainApp(
     logsViewModel: LogsViewModel,
     contactsViewModel: ContactsViewModel,
     onStartClicked: () -> Unit,
-    onStopClicked: () -> Unit
+    onStopClicked: () -> Unit,
+    onImportContact: () -> Unit
 ) {
     val navController = rememberNavController()
     val showAlert = remember { mutableStateOf(false) }
@@ -226,7 +263,7 @@ fun MainApp(
             HomeScreen(homeViewModel)
         }
         composable("contacts") {
-            EmergencyContactsScreen(contactsViewModel)
+            EmergencyContactsScreen(contactsViewModel, onImportContact)
         }
         composable("logs") {
             LogsScreen(logsViewModel)
