@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fall Detection</string>
+    <string name="app_description">Smartphone IMU-based Fall Detection System</string>
+    
+    <!-- Home Screen Strings -->
+    <string name="home_title">Fall Detection</string>
+    <string name="home_status_safe">🟢 SAFE</string>
+    <string name="home_status_monitoring">🔵 MONITORING</string>
+    <string name="home_status_fall_detected">🔴 FALL DETECTED</string>
+    <string name="home_system_active">System Active</string>
+    <string name="home_system_inactive">System Inactive</string>
+    <string name="home_button_start">Start</string>
+    <string name="home_button_stop">Stop</string>
+    
+    <!-- Statistics -->
+    <string name="stats_title">Statistics (Last 24 Hours)</string>
+    <string name="stats_falls_detected">Falls Detected</string>
+    <string name="stats_sent_alerts">Sent Alerts</string>
+    <string name="stats_active_contacts">Active Contacts</string>
+    
+    <!-- Alert Screen -->
+    <string name="alert_title">🚨 FALL DETECTED!</string>
+    <string name="alert_question">Are you OK?</string>
+    <string name="alert_button_ok">I\'m OK</string>
+    <string name="alert_button_sos">SOS</string>
+    <string name="alert_confidence">Confidence: %d%%</string>
+    <string name="alert_location">Location: %s</string>
+    <string name="alert_sending">📱 Sending alerts to emergency contacts...</string>
+    
+    <!-- SOS Status -->
+    <string name="sos_status_title">🚨 SOS INITIATED</string>
+    <string name="sos_status_message">Emergency alerts sent to all contacts</string>
+    <string name="sos_help_arriving">Help is on the way!</string>
+    <string name="sos_location_shared">Location shared: %s</string>
+    
+    <!-- Contacts Screen -->
+    <string name="contacts_title">Emergency Contacts</string>
+    <string name="contacts_add_dialog_title">Add Emergency Contact</string>
+    <string name="contacts_add_button">Add</string>
+    <string name="contacts_cancel_button">Cancel</string>
+    <string name="contacts_hint_name">Name</string>
+    <string name="contacts_hint_phone">Phone Number</string>
+    <string name="contacts_hint_email">Email (optional)</string>
+    <string name="contacts_button_active">Active</string>
+    <string name="contacts_button_inactive">Inactive</string>
+    <string name="contacts_empty">No emergency contacts added</string>
+    
+    <!-- Logs Screen -->
+    <string name="logs_title">Fall Detection Logs</string>
+    <string name="logs_empty">No fall events recorded</string>
+    <string name="logs_confidence">Confidence: %d%%</string>
+    <string name="logs_location">Location: %.5f, %.5f</string>
+    <string name="logs_sos_triggered">SOS TRIGGERED</string>
+    
+    <!-- Notifications -->
+    <string name="notification_channel_name">Fall Detection</string>
+    <string name="notification_channel_description">Continuous monitoring for falls</string>
+    <string name="notification_title">Fall Detection System</string>
+    <string name="notification_message">Monitoring for falls...</string>
+    
+    <!-- Errors & Messages -->
+    <string name="error_permission_denied">Permission denied</string>
+    <string name="error_location_unavailable">Location unavailable</string>
+    <string name="error_sensor_unavailable">Required sensors not available</string>
+    <string name="error_network_error">Network error occurred</string>
+    <string name="message_monitoring_started">Monitoring started</string>
+    <string name="message_monitoring_stopped">Monitoring stopped</string>
+    <string name="message_contact_added">Contact added successfully</string>
+    <string name="message_contact_deleted">Contact deleted</string>
+</resources>
