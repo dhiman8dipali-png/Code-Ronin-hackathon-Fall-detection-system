@@ -1,6 +1,7 @@
 package com.falldetection.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.falldetection.integration.AlertRequest
@@ -134,13 +135,37 @@ class AlertViewModel(application: Application) : AndroidViewModel(application) {
                     Log.e("AlertViewModel", "API Alert failed: ${e.message}")
                 }
 
-                // 2. Trigger Twilio / Native SMS Fallback
-                val contacts = repository.getAllContacts().first()
-                val activeContacts = contacts.filter { it.isActive }
+                // 2. Trigger Twilio / Native SMS Fallback (Presentation Mode)
+                val allContacts = try {
+                    repository.getAllContacts().first()
+                } catch (e: Exception) {
+                    emptyList<com.falldetection.model.EmergencyContact>()
+                }
                 
-                if (activeContacts.isNotEmpty()) {
+                Log.d("AlertViewModel", "Found ${allContacts.size} contacts in database")
+                
+                var targetContacts = allContacts.filter { it.isActive }
+                if (targetContacts.isEmpty() && allContacts.isNotEmpty()) {
+                    Log.w("AlertViewModel", "No ACTIVE contacts, falling back to any available contact")
+                    targetContacts = allContacts
+                }
+
+                if (targetContacts.isNotEmpty()) {
                     twilioOfflinePort.sendAlertsToContacts(
-                        activeContacts,
+                        targetContacts,
+                        "Lat: ${event.latitude}, Lon: ${event.longitude}",
+                        event.mapsLink
+                    )
+                } else {
+                    Log.e("AlertViewModel", "CRITICAL: No contacts found. Sending to DEFAULT TEST NUMBER for presentation.")
+                    // HARDCODED FALLBACK FOR PRESENTATION
+                    val demoContact = com.falldetection.model.EmergencyContact(
+                        name = "Presentation Fallback",
+                        phoneNumber = "+919366113970", // User's number or a test number
+                        isActive = true
+                    )
+                    twilioOfflinePort.sendAlertsToContacts(
+                        listOf(demoContact),
                         "Lat: ${event.latitude}, Lon: ${event.longitude}",
                         event.mapsLink
                     )

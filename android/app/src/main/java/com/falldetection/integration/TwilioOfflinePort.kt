@@ -10,6 +10,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.telephony.SmsManager
 
 /**
@@ -143,10 +144,12 @@ class TwilioOfflinePort(private val context: Context) {
         location: String,
         mapsLink: String
     ): Pair<Int, Int> {
+        Log.d(TAG, "Sending alerts to ${contacts.size} contacts")
         var successCount = 0
         var failureCount = 0
 
         for (contact in contacts) {
+            Log.d(TAG, "Processing contact: ${contact.name}, Active: ${contact.isActive}")
             if (contact.isActive) {
                 val smsSuccess = sendSMSAlert(contact.phoneNumber, location, mapsLink)
                 if (smsSuccess) {
@@ -200,6 +203,7 @@ class TwilioOfflinePort(private val context: Context) {
             val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 context.getSystemService(SmsManager::class.java)
             } else {
+                @Suppress("DEPRECATION")
                 SmsManager.getDefault()
             }
             smsManager.sendTextMessage(phoneNumber, null, message, null, null)

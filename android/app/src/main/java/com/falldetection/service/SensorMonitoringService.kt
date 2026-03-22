@@ -15,7 +15,7 @@ import com.falldetection.MainActivity
 import com.falldetection.algorithm.EnhancedFallResult
 import com.falldetection.algorithm.FallDetectionAlgorithm
 import com.falldetection.integration.LocationManager
-import com.falldetection.integration.TwilioIntegration
+import com.falldetection.integration.TwilioOfflinePort
 import com.falldetection.model.FallDetectionEvent
 import com.falldetection.repository.FallDetectionDatabase
 import com.falldetection.repository.FallDetectionRepository
@@ -34,7 +34,7 @@ class SensorMonitoringService : Service() {
     private lateinit var sensorCollector: SensorDataCollector
     private lateinit var fallDetectionAlgorithm: FallDetectionAlgorithm
     private lateinit var locationManager: LocationManager
-    private lateinit var twilioOfflinePort: com.falldetection.integration.TwilioOfflinePort
+    private lateinit var twilioOfflinePort: TwilioOfflinePort
     private lateinit var repository: FallDetectionRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.Default)
@@ -59,7 +59,7 @@ class SensorMonitoringService : Service() {
         sensorCollector = SensorDataCollector(this)
         fallDetectionAlgorithm = FallDetectionAlgorithm()
         locationManager = LocationManager(this)
-        twilioOfflinePort = com.falldetection.integration.TwilioOfflinePort(this)
+        twilioOfflinePort = TwilioOfflinePort(this)
 
         val database = FallDetectionDatabase.getDatabase(this)
         repository = FallDetectionRepository(
