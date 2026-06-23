@@ -289,7 +289,7 @@ See [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) § Troubleshooting for full g
 
 ## 👥 Contributors
 
-- **Lead Developer**: AI Assistant
+- **Lead Developer**: Bibaswan Sarkar (AI-ML Architect)
 - **Architecture**: MVVM + Quantum ML
 - **Integration**: Twilio + Google Maps
 
